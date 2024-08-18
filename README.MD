@@ -14,8 +14,10 @@ Operation Modes:
 
 This manual is specifically for Ubuntu 24.04, but it is also compatible with most POSIX-compliant operating systems.
 
-**Instal Vagrant**
+**Instal Vagrant and Redis**
 ```shell
+sudo apt install vagrant
+sudo apt install redis-server
 
 ```
 
@@ -24,10 +26,12 @@ This manual is specifically for Ubuntu 24.04, but it is also compatible with mos
 
 
 A) Virtualbox 
-TBD
+
 
 B) KVM
-TBD
+```shell
+sudo apt install -y qemu-kvm virt-manager libvirt-daemon-system virtinst libvirt-clients bridge-utils
+```
 
 **Get repo**
 

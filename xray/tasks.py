@@ -21,6 +21,7 @@ from collector.models import Pipipackage
 
 ### MANUAL BULK ACTION
 def scan_top_packages(n=30, queue=True):
+    print("À")
     list_of_top_packages = Pipipackage.objects.filter(logs_collected__isnull=True).order_by('-top_rating').values_list(
         'id', 'name')[:n]
     # list_of_top_packages_obj = Pipipackage.objects.all().order_by('-top_rating')[:100]
@@ -30,7 +31,7 @@ def scan_top_packages(n=30, queue=True):
             _run_vm_vagrant.delay(package_name=pckg_tp[1], packageobj_id=pckg_tp[0])
         else:
             _run_vm_vagrant(package_name=pckg_tp[1], packageobj_id=pckg_tp[0])
-
+        print("Running: ", pckg_tp[1])
 
 ### MANUAL BULK ACTION
 def scan_new_packages(self):

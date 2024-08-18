@@ -16,7 +16,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Ubuntu 22.04 box with osquery
   config.vm.define ENV['HOSTNAME'] do |ubuntu|
-    ubuntu.vm.box = "ubuntu/jammy64"
+    ubuntu.vm.box = "bento/ubuntu-22.04"
     ubuntu.vm.hostname = HOSTNAME
     #ubuntu.vm.network :private_network, :auto_network => true
     #ubuntu.vm.network "private_network", type: "dhcp"
@@ -77,7 +77,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     ubuntu.vm.provision "shell", inline: 'echo "About to import pipi package"'
     ubuntu.vm.provision "shell", privileged: false do |s|
         s.inline = "python3 -c \"import time; import $1; time.sleep(20)\""
-        s.args   = [ENV["PACKAGE_NAME_IMPORT"]]
+        s.args   = [ENV["PACKAGE_NAME_INSTALL"]]
     end
 
     ubuntu.vm.provider 'virtualbox' do |vbox|
