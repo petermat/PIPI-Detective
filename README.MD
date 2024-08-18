@@ -64,16 +64,16 @@ python manage.py migrate
 
 ### Mode: Analyze top X packages ###
 
-Run ... or manually execute Google BigQuery for csv export
-
-```sql
-SELECT file.project ,COUNT(*) as download_count
-        FROM `bigquery-public-data.pypi.file_downloads`
-        WHERE DATE(timestamp) >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
-        GROUP BY file.project
-        ORDER BY download_count DESC
-        LIMIT 10000
+```shell
+celery -A pipi_detective.celery.app worker --loglevel=info -c 4
 ```
+
+```shell
+python manage.py shell
+from xray.tasks import scan_top_packages
+scan_top_packages(n=100, queue=True)
+```
+
 
 
 ### Mode: Analyze new packages ###

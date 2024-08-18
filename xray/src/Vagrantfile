@@ -94,6 +94,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         vbox.customize ['modifyvm', :id, '--vram', '128']
         vbox.customize ['modifyvm', :id, '--audio', 'none']
     end
+
+   ubuntu.vm.provider :libvirt do |libvirt|
+        libvirt.graphics_port = 5901
+        libvirt.graphics_ip = '0.0.0.0'
+        libvirt.video_type = 'qxl'
+  end
+
   end
 
   # Configuration for rsyslog server
