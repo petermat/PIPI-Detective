@@ -16,7 +16,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Ubuntu 22.04 box with osquery
   config.vm.define ENV['HOSTNAME'] do |ubuntu|
-    ubuntu.vm.box = "bento/ubuntu-22.04"
+    ubuntu.vm.box = "generic/ubuntu2204"
     ubuntu.vm.hostname = HOSTNAME
     #ubuntu.vm.network :private_network, :auto_network => true
     #ubuntu.vm.network "private_network", type: "dhcp"
