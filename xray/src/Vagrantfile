@@ -126,7 +126,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Splunk box
   config.vm.define "splunk" do |splunk|
-      splunk.vm.box = "ubuntu/jammy64"
+      splunk.vm.box = "bento/ubuntu-22.04"
       splunk.vm.hostname = "splunk"
       splunk.vm.synced_folder "./config/splunk", "/vagrant"
       # Assign a private network IP (Change as needed)
