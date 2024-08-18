@@ -1,0 +1,155 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+
+ENV["LC_ALL"] = "en_US.UTF-8"
+
+VAGRANTFILE_API_VERSION = "2"
+
+if ENV['HOSTNAME'] then
+    HOSTNAME = ENV['HOSTNAME']
+else
+    HOSTNAME = "ubuntu"
+end
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  # Ubuntu 22.04 box with osquery
+  config.vm.define ENV['HOSTNAME'] do |ubuntu|
+    ubuntu.vm.box = "ubuntu/jammy64"
+    ubuntu.vm.hostname = HOSTNAME
+    #ubuntu.vm.network :private_network, :auto_network => true
+    #ubuntu.vm.network "private_network", type: "dhcp"
+    ubuntu.vm.synced_folder "logs/"+HOSTNAME, "/var/log/osquery", create: true
+    ubuntu.vm.synced_folder "./config/labrat", "/vagrant"
+
+    ubuntu.vm.provision "shell", inline: "export DEBIAN_FRONTEND=noninteractive"
+    ubuntu.vm.provision "shell", inline: 'echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null'
+    ubuntu.vm.provision "shell", inline: "sudo apt-get update && sudo apt-get install -y curl wget gnupg python3 python3-pip python3-venv xclip"
+    ##ubuntu.vm.provision "shell", inline: "sudo apt-get install -y avahi-daemon libnss-mdns"
+    ##ubuntu.vm.provision "shell", inline: "sudo apt-get install -y rsyslog"
+    ubuntu.vm.provision "shell", inline: 'echo "OSQuery config starts"'
+    ubuntu.vm.provision "shell", inline: "sudo dpkg -i /vagrant/osquery_5.12.1-1.linux_amd64.deb"
+
+    #ubuntu.vm.provision "shell", inline: <<-SHELL
+      #export DEBIAN_FRONTEND=noninteractive
+    #  sudo apt-get update && apt-get install -y curl wget gnupg python3 python3-pip
+      #curl -fsSL https://pkg.osquery.io/deb/pubkey.gpg | gpg --dearmor -o /etc/apt/keyrings/osquery.gpg
+      #echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/osquery.gpg] https://pkg.osquery.io/deb deb main' > /etc/apt/sources.list.d/osquery.list
+    #  sudo apt-get update && apt-get install -y rsyslog
+
+      # Configure osquery to output logs with hostname in filename
+      #echo "filesystem_logger_plugin=tls" | sudo tee -a /etc/osquery/osquery.conf
+      #echo "logger_path=/var/log/osquery" | sudo tee -a /etc/osquery/osquery.conf
+
+      # Configure rsyslog to forward logs to rsyslog server
+      #echo "*.* @@rsyslog-server-ip:514" | sudo tee -a /etc/rsyslog.d/50-default.conf
+    #SHELL
+    #ubuntu.vm.provision "file", source: "./config/labrat/osquery.conf",
+    #                           destination: "/tmp/osquery.conf"
+    #ubuntu.vm.provision "file", source: "./config/labrat/python_syscalls_pack.json",
+    #                            destination: "/tmp/python_syscalls_pack.json"
+    #ubuntu.vm.provision "file", source: "./config/labrat/rsyslog_osquery.conf",
+    #                            destination: "./rsyslog_osquery.conf"
+    ubuntu.vm.provision "shell", inline: "cp /vagrant/osquery.conf /etc/osquery/osquery.conf"
+    ubuntu.vm.provision "shell", inline: "cp /vagrant/osquery.flags /etc/osquery/osquery.flags"
+    ubuntu.vm.provision "shell", inline: "cp /vagrant/python_syscalls_pack.json /opt/osquery/share/osquery/packs/python_syscalls_pack.json"
+    #ubuntu.vm.provision "shell", inline: "cp /vagrant/rsyslog_osquery.conf /etc/rsyslog.d/rsyslog_osquery.conf"
+
+    ubuntu.vm.provision "shell", inline: <<-SHELL
+      #sudo chown -R :adm /var/log/osquery && sudo chmod -R g+r /var/log/osquery && sudo chmod g+s /var/log/osquery
+      sudo systemctl start osqueryd
+      #sudo systemctl restart rsyslog
+    SHELL
+
+    #ubuntu.vm.provision "shell", privileged: false, inline: "nslookup "+HOSTNAME
+    #ubuntu.vm.provision "shell", privileged: false, inline: <<-SHELL
+    #  pip install requests
+    #  sleep 20
+    #  python3 -c "import time; import requests; time.sleep(20)"
+    #SHELL
+    ubuntu.vm.provision "shell", inline: 'echo "About to install pipi package"'
+    ubuntu.vm.provision "shell", privileged: false do |s|
+        s.inline = "pip install $1;sleep 20;"
+        s.args   = [ENV['PACKAGE_NAME_INSTALL']]
+    end
+
+    ubuntu.vm.provision "shell", inline: 'echo "About to import pipi package"'
+    ubuntu.vm.provision "shell", privileged: false do |s|
+        s.inline = "python3 -c \"import time; import $1; time.sleep(20)\""
+        s.args   = [ENV["PACKAGE_NAME_IMPORT"]]
+    end
+
+    ubuntu.vm.provider 'virtualbox' do |vbox|
+        vbox.name = HOSTNAME
+        vbox.memory = 2048
+        vbox.cpus = 2
+        vbox.gui = true
+        vbox.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+        vbox.customize ['modifyvm', :id, '--accelerate3d', 'off']
+        vbox.customize ['modifyvm', :id, '--graphicscontroller', 'vmsvga']
+        # vbox.customize ['modifyvm', :id, '--graphicscontroller', 'vboxvga']
+        vbox.customize ['modifyvm', :id, '--hwvirtex', 'on']
+        vbox.customize ['modifyvm', :id, '--ioapic', 'on']
+        vbox.customize ['modifyvm', :id, '--vram', '128']
+        vbox.customize ['modifyvm', :id, '--audio', 'none']
+    end
+  end
+
+  # Configuration for rsyslog server
+  config.vm.define "rsyslog" do |rsyslog|
+    rsyslog.vm.box = "ubuntu/jammy64"  # "generic/ubuntu2204"
+    rsyslog.vm.hostname = "rsyslog"
+    #rsyslog.vm.network :private_network, :auto_network => true
+    #rsyslog.vm.network "private_network", type: "dhcp"
+    rsyslog.vm.synced_folder "./config/rsyslog", "/vagrant"
+    rsyslog.vm.synced_folder "./logs", "/var/log/host_logs", create: true
+    rsyslog.vm.provision "shell", inline: "export DEBIAN_FRONTEND=noninteractive"
+    rsyslog.vm.provision "shell", inline: "sudo apt-get update && sudo apt-get install -y rsyslog"
+    rsyslog.vm.provision "shell", inline: "sudo apt-get install -y avahi-daemon libnss-mdns"
+    rsyslog.vm.provision "shell", inline: "sudo cp /vagrant/rsyslog.conf /etc/rsyslog.conf"
+    rsyslog.vm.provision "shell", inline: "sudo systemctl restart rsyslog"
+    rsyslog.vm.provider 'virtualbox' do |vbox|
+        vbox.name = "rsyslog"
+        vbox.memory = 2048
+        vbox.cpus = 2
+        vbox.gui = true
+        vbox.customize ['modifyvm', :id, '--accelerate3d', 'off']
+        vbox.customize ['modifyvm', :id, '--graphicscontroller', 'vmsvga']
+        # vbox.customize ['modifyvm', :id, '--graphicscontroller', 'vboxvga']
+        vbox.customize ['modifyvm', :id, '--hwvirtex', 'on']
+        vbox.customize ['modifyvm', :id, '--ioapic', 'on']
+        vbox.customize ['modifyvm', :id, '--vram', '128']
+        vbox.customize ['modifyvm', :id, '--audio', 'none']
+    end
+  end
+
+  # Splunk box
+  config.vm.define "splunk" do |splunk|
+      splunk.vm.box = "ubuntu/jammy64"
+      splunk.vm.hostname = "splunk"
+      splunk.vm.synced_folder "./config/splunk", "/vagrant"
+      # Assign a private network IP (Change as needed)
+      #config.vm.network "private_network", ip: "192.168.33.10"
+      splunk.vm.network "forwarded_port", guest: 8000, host: 8000
+      # Synced folder for logs
+      splunk.vm.synced_folder "./logs", "/opt/splunk-logs", create: true
+      # Provision with a shell script
+      splunk.vm.provision "shell", privileged: true, path: "./config/splunk/provision-splunk.sh"
+      splunk.vm.provider 'virtualbox' do |vbox|
+        vbox.name = "splunk"
+        vbox.memory = 2048
+        vbox.cpus = 2
+        vbox.gui = true
+        vbox.customize ['modifyvm', :id, '--accelerate3d', 'off']
+        vbox.customize ['modifyvm', :id, '--graphicscontroller', 'vmsvga']
+        # vbox.customize ['modifyvm', :id, '--graphicscontroller', 'vboxvga']
+        vbox.customize ['modifyvm', :id, '--hwvirtex', 'on']
+        vbox.customize ['modifyvm', :id, '--ioapic', 'on']
+        vbox.customize ['modifyvm', :id, '--vram', '128']
+        vbox.customize ['modifyvm', :id, '--audio', 'none']
+    end
+
+  end
+
+end

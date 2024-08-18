@@ -1,0 +1,19 @@
+{
+  "queries": {
+	"python_process_events": {
+  	"query": "SELECT * FROM bpf_process_events WHERE path LIKE '/usr/bin/python%' OR path LIKE '/usr/local/bin/python%' OR path LIKE '%/venv/bin/python%';",
+  	"interval": 10,
+  	"description": "Monitor all syscalls from Python scripts, including those in virtual environments.",
+  	"removed": false
+	},
+	"python_socket_events": {
+  	"query": "SELECT s.*, p.path FROM bpf_socket_events s JOIN bpf_process_events p ON s.pid = p.pid WHERE p.path LIKE '/usr/bin/python%' OR p.path LIKE '/usr/local/bin/python%' OR p.path LIKE '%/venv/bin/python%';",
+  	"interval": 10,
+  	"description": "Monitor all socket events from Python scripts, including those in virtual environments.",
+  	"removed": false
+	}
+  },
+  "version": "1.0.0",
+  "description": "Pack to monitor all syscalls and socket events from Python scripts using eBPF, including scripts running in virtual environments.",
+  "shards": 100
+}

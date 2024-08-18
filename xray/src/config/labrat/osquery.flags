@@ -1,0 +1,8 @@
+--enable_bpf_events=true
+--disable_events=false
+--disable_audit=false
+--audit_allow_config=true
+--audit_allow_socket=true
+--audit_allow_process_events=true
+--enable_syslog
+
