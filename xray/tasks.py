@@ -8,6 +8,8 @@ import subprocess
 import vagrant
 from fabric.api import env, execute, task, run
 from celery import shared_task
+from django.conf import settings
+
 
 # todo: functions:
 # learning - going over top packages
@@ -64,7 +66,7 @@ def _run_vm_vagrant(package_name, packageobj_id=None):
 
     v.env = os_env
     #v.up(vm_name='ubuntu') #vm_name=XX, provider=libvirt|virtualbox
-    v.up(vm_name=os_env['HOSTNAME']) #vm_name=XX, provider=libvirt|virtualbox
+    v.up(vm_name=os_env['HOSTNAME'], provider=str(settings.VAGRANT_PROVIDER or "virtualbox"))
     print("DEBUG UP ok.")
     print(v.user_hostname_port(vm_name=os_env['HOSTNAME']))
 
