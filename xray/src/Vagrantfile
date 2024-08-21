@@ -24,32 +24,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     ubuntu.vm.provision "shell", inline: "export DEBIAN_FRONTEND=noninteractive"
     ubuntu.vm.provision "shell", inline: 'echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null'
-    ubuntu.vm.provision "shell", inline: "sudo apt-get update && sudo apt-get install -y curl wget gnupg python3 python3-pip python3-venv xclip"
-    ##ubuntu.vm.provision "shell", inline: "sudo apt-get install -y avahi-daemon libnss-mdns"
-    ##ubuntu.vm.provision "shell", inline: "sudo apt-get install -y rsyslog"
+    ubuntu.vm.provision "shell", inline: "sudo apt-get update && sudo apt-get install -y curl wget gnupg python3 python3-pip python3-venv "
+    ubuntu.vm.provision "shell", inline: "sudo apt-get update && sudo apt-get install -y xclip net-tools"
+    #ubuntu.vm.provision "shell", inline: "sudo apt-get install -y avahi-daemon libnss-mdns"
     ubuntu.vm.provision "shell", inline: 'echo "OSQuery config starts"'
     ubuntu.vm.provision "shell", inline: "sudo dpkg -i /vagrant/osquery_5.12.1-1.linux_amd64.deb"
 
-    #ubuntu.vm.provision "shell", inline: <<-SHELL
-      #export DEBIAN_FRONTEND=noninteractive
-    #  sudo apt-get update && apt-get install -y curl wget gnupg python3 python3-pip
-      #curl -fsSL https://pkg.osquery.io/deb/pubkey.gpg | gpg --dearmor -o /etc/apt/keyrings/osquery.gpg
-      #echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/osquery.gpg] https://pkg.osquery.io/deb deb main' > /etc/apt/sources.list.d/osquery.list
-    #  sudo apt-get update && apt-get install -y rsyslog
 
-      # Configure osquery to output logs with hostname in filename
-      #echo "filesystem_logger_plugin=tls" | sudo tee -a /etc/osquery/osquery.conf
-      #echo "logger_path=/var/log/osquery" | sudo tee -a /etc/osquery/osquery.conf
-
-      # Configure rsyslog to forward logs to rsyslog server
-      #echo "*.* @@rsyslog-server-ip:514" | sudo tee -a /etc/rsyslog.d/50-default.conf
-    #SHELL
-    #ubuntu.vm.provision "file", source: "./config/labrat/osquery.conf",
-    #                           destination: "/tmp/osquery.conf"
-    #ubuntu.vm.provision "file", source: "./config/labrat/python_syscalls_pack.json",
-    #                            destination: "/tmp/python_syscalls_pack.json"
-    #ubuntu.vm.provision "file", source: "./config/labrat/rsyslog_osquery.conf",
-    #                            destination: "./rsyslog_osquery.conf"
     ubuntu.vm.provision "shell", inline: "cp /vagrant/osquery.conf /etc/osquery/osquery.conf"
     ubuntu.vm.provision "shell", inline: "cp /vagrant/osquery.flags /etc/osquery/osquery.flags"
     ubuntu.vm.provision "shell", inline: "cp /vagrant/python_syscalls_pack.json /opt/osquery/share/osquery/packs/python_syscalls_pack.json"
@@ -61,12 +42,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       #sudo systemctl restart rsyslog
     SHELL
 
-    #ubuntu.vm.provision "shell", privileged: false, inline: "nslookup "+HOSTNAME
-    #ubuntu.vm.provision "shell", privileged: false, inline: <<-SHELL
-    #  pip install requests
-    #  sleep 20
-    #  python3 -c "import time; import requests; time.sleep(20)"
-    #SHELL
+    ubuntu.vm.provision "shell", privileged: true, inline: <<-SHELL
+      dpkg -i /vagrant/filebeat-8.15.0-amd64.deb
+      mv /vagrant/filebeat.service /lib/systemd/system/filebeat.service
+      mv /vagrant/filebeat.yml /etc/filebeat/filebeat.yml
+      sed -i "s/localhost:5044/$(netstat -rn | awk '/^0.0.0.0/ {print $2; exit}'):5044/" /etc/filebeat/filebeat.yml
+      systemctl daemon-reload
+      service filebeat start
+    SHELL
+
     ubuntu.vm.provision "shell", inline: 'echo "About to install pipi package"'
     ubuntu.vm.provision "shell", privileged: false do |s|
         s.inline = "pip install $1;sleep 20;"

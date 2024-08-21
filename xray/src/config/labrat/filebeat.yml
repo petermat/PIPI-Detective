@@ -1,0 +1,11 @@
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /var/log/osquery/osqueryd.results.log
+
+fields:
+  hostname: "${HOSTNAME}"
+
+output.logstash:
+  hosts: ["localhost:5044"]

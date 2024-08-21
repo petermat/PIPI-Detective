@@ -62,6 +62,19 @@ python manage.py migrate
 
 ## Running ##
 
+### Run local Logstash server to collect logs
+
+Edit log path to absolute value in following file:
+```shell
+pipi_detective/xray/src/config/logstash.dist.yml
+```
+Copy to the logstash config and run:
+```shell
+sudo cp pipi_detective/xray/src/config/logstash.dist.yml /etc/logstash/conf.d/logstash.conf
+sudo /usr/share/logstash/bin/logstash --path.settings /etc/logstash/ 
+```
+
+
 ### Mode: Analyze top X packages ###
 
 ```shell
