@@ -80,7 +80,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
 
     ubuntu.vm.provider 'virtualbox' do |vbox|
-        ubuntu.vm.synced_folder "logs/"+HOSTNAME, "/var/log/osquery", create: true
+        #ubuntu.vm.synced_folder "logs/"+HOSTNAME, "/var/log/osquery", create: true
         vbox.name = HOSTNAME
         vbox.memory = 2048
         vbox.cpus = 2
@@ -96,7 +96,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
 
    ubuntu.vm.provider :libvirt do |libvirt|
-        ubuntu.vm.synced_folder "logs/"+HOSTNAME, "/var/log/osquery", type: "nfs"
+        #ubuntu.vm.synced_folder "logs/"+HOSTNAME, "/var/log/osquery", type: "nfs"
         #ubuntu.vm.synced_folder "logs/"+HOSTNAME, "/var/log/osquery", create: true, type: 'rsync', rsync__args: ["--verbose", "--archive", "--update"]
         libvirt.memory = 1024
         libvirt.cpus = 1
