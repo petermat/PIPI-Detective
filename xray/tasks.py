@@ -78,6 +78,9 @@ def _run_vm_vagrant(package_name, packageobj_id=None):
 
     folder_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'src', 'logs', os_env['HOSTNAME'])
     # todo: required -> vagrant plugin install vagrant-scp
+
+    v._run_vagrant_command(["vagrant", "global-status"])
+    print(f"DEBUG: About to execute: vagrant scp {os_env['HOSTNAME']}:/var/log/osquery {folder_path}")
     v._run_vagrant_command(["vagrant", "scp", f"{os_env['HOSTNAME']}:/var/log/osquery {folder_path}"])
 
 
