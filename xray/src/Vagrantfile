@@ -96,7 +96,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
 
    ubuntu.vm.provider :libvirt do |libvirt|
-        ubuntu.vm.synced_folder "logs/"+HOSTNAME, "/var/log/osquery", create: true, type: 'rsync', rsync__args: ["--verbose", "--archive", "--update"]
+        ubuntu.vm.synced_folder "logs/"+HOSTNAME, "/var/log/osquery", type: "nfs"
+        #ubuntu.vm.synced_folder "logs/"+HOSTNAME, "/var/log/osquery", create: true, type: 'rsync', rsync__args: ["--verbose", "--archive", "--update"]
         libvirt.memory = 1024
         libvirt.cpus = 1
         #libvirt.graphics_port = 5901

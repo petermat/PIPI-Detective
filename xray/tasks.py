@@ -64,7 +64,6 @@ def _run_vm_vagrant(package_name, packageobj_id=None):
     # evil_package = evil-package@git+https://github.com/petermat/evil-package
     os_env['PACKAGE_NAME_IMPORT'] = re.sub(r'^python[-_]', '', package_name).split("@")[0].replace("-","_")
     #os_env['VAGRANT_LOG'] = 'debug' not working?
-
     v.env = os_env
     #v.up(vm_name='ubuntu') #vm_name=XX, provider=libvirt|virtualbox
     v.up(vm_name=os_env['HOSTNAME'], provider=str(settings.VAGRANT_PROVIDER or "virtualbox"))
@@ -78,6 +77,11 @@ def _run_vm_vagrant(package_name, packageobj_id=None):
     # verify that logs are synced
 
     folder_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'src', 'logs', os_env['HOSTNAME'])
+    # todo: required -> vagrant plugin install vagrant-scp
+    v._run_vagrant_command(["vagrant", "scp", f"{os_env['HOSTNAME']}:/var/log/osquery {folder_path}"])
+
+
+    """ obsolete - logs are pulled by Django - no need for this check anymore
     logs_uploaded = False
     while not logs_uploaded:
         time.sleep(5)
@@ -112,6 +116,12 @@ def _run_vm_vagrant(package_name, packageobj_id=None):
         else:
             print("Warning: Log files latest_date is empty ")
             time.sleep(5)
+    """
+
+    # TODO Get logs from guest machine
+    # idea1: vagrant function?
+    # idea2: ssh?
+    # idea3: shared folder?
 
     try:
         v.destroy(vm_name=os_env['HOSTNAME'])
