@@ -55,7 +55,6 @@ def _run_vm_vagrant(package_name, packageobj_id=None):
 
 
 
-
     import uuid
     vagrantfile_path = os.path.join(os.path.dirname(__file__), 'src')
     log_cm = vagrant.make_file_cm('deployment.log')
@@ -81,13 +80,13 @@ def _run_vm_vagrant(package_name, packageobj_id=None):
 
     # verify that logs are synced
     log_filename = os_env['HOSTNAME']+datetime.now().strftime("-%Y-%m-%d")+".log"
-    file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'src', 'logs',log_filename)
+    file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'src', 'logs', log_filename)
 
     while not os.path.exists(file_path):
         print("Log file not found ", file_path, ". Waiting 1 sec")
         time.sleep(1)
 
-    while (time.time() - os.path.getmtime(file_path)) < 5:
+    while time.time() - os.path.getmtime(file_path) < 5:
         print("Log file too fresh, waiting 1 sec")
         time.sleep(1)
 

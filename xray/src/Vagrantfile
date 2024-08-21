@@ -45,6 +45,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     ubuntu.vm.provision "shell", privileged: true, inline: <<-SHELL
       dpkg -i /vagrant/filebeat-8.15.0-amd64.deb
       mv /vagrant/filebeat.service /lib/systemd/system/filebeat.service
+      chown root:root /etc/filebeat/filebeat.yml
+      chmod go-w /etc/filebeat/filebeat.yml
       mv /vagrant/filebeat.yml /etc/filebeat/filebeat.yml
       sed -i "s/localhost:5044/$(netstat -rn | awk '/^0.0.0.0/ {print $2; exit}'):5044/" /etc/filebeat/filebeat.yml
       systemctl daemon-reload
