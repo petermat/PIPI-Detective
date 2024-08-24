@@ -61,7 +61,16 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     ubuntu.vm.provision "shell", inline: 'echo "About to import pipi package"'
     ubuntu.vm.provision "shell", privileged: false do |s|
-        s.inline = "python3 -c \"import time; import $1; time.sleep(20)\""
+        s.inline = <<-SCRIPT
+                    python3 -c"
+import time
+try:
+    import #{ENV['PACKAGE_NAME_IMPORT']}
+except:
+    pass
+time.sleep(20)
+"
+    SCRIPT
         s.args   = [ENV["PACKAGE_NAME_IMPORT"]]
     end
 
