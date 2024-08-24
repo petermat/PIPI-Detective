@@ -6,7 +6,7 @@ from django.utils import timezone
 #import logging
 #logger = logging.getLogger(__name__)
 
-from xray.models import Pipipackage
+from collector.models import Pipipackage
 
 class Snapshot(models.Model):
     created = models.DateTimeField(default=timezone.now, blank=True)
