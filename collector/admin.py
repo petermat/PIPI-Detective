@@ -7,4 +7,5 @@ from .models import Pipipackage
 
 @admin.register(Pipipackage)
 class PipipackageAdmin(admin.ModelAdmin):
-    list_display = [field.name for field in Pipipackage._meta.get_fields()]
+    #list_display = [field.name for field in Pipipackage._meta.get_fields()]
+    list_display = ['name', 'summary', 'version', 'observed', 'logs_collected','top_rating']
