@@ -139,7 +139,7 @@ def _run_vm_vagrant(package_name, packageobj_id=None):
 
 
     if packageobj_id:
-        sn_obj, created = Snapshot.objects.create_or_update(filename=log_filename,
+        sn_obj, created = Snapshot.objects.update_or_create(filename=log_filename,
                                                             #ruleset=dict(),
                                                             #findings=dict(),
                                                             pipipackage=packageobj_id)

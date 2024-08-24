@@ -75,10 +75,11 @@ pipi_detective/xray/src/config/logstash.dist.yml
 Copy to the logstash config and run:
 ```shell
 sudo cp pipi_detective/xray/src/config/logstash.dist.yml /etc/logstash/conf.d/logstash.conf
-sudo /usr/share/logstash/bin/logstash --path.settings /etc/logstash/ 
 sudo usermod -a -G logstash $USER
 sudo chmod g+rwx -R /var/lib/logstash
 sudo chmod g+rw -R /var/log/logstash
+test:
+/usr/share/logstash/bin/logstash --path.settings /etc/logstash/ 
 
 ```
 
