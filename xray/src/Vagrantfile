@@ -66,9 +66,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 import time
 try:
     import #{ENV['PACKAGE_NAME_IMPORT']}
+    time.sleep(20)
 except:
     pass
-time.sleep(20)
 "
     SCRIPT
         s.args   = [ENV["PACKAGE_NAME_IMPORT"]]
