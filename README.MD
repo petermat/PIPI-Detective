@@ -16,8 +16,8 @@ This manual is specifically for Ubuntu 24.04, but it is also compatible with mos
 
 **Instal Vagrant and Redis**
 ```shell
-sudo apt install vagrant
-sudo apt install redis-server
+sudo apt install -y git vagrant build-essential
+sudo apt install -y redis-server
 
 ```
 
@@ -30,14 +30,17 @@ A) Virtualbox
 
 B) KVM
 ```shell
-sudo apt install -y qemu-kvm virt-manager libvirt-daemon-system virtinst libvirt-clients bridge-utils
+sudo apt install -y qemu-kvm virt-manager libvirt-daemon-system virtinst libvirt-clients bridge-utils libvirt-dev
+vagrant plugin install vagrant-libvirt
+sudo usermod -a -G libvirt ${USER}
+sudo usermod -aG kvm $USER 
 ```
 
 **Get repo**
 
 ```shell
-git clone ...
-cd ...
+git clone https://github.com/petermat/PIPI-Detective.git
+cd PIPI-Detective
 ```
 
 **Install Python packages**
@@ -54,9 +57,10 @@ pip install -r requirements.txt
 
 **Set the Django app**
 ```shell
-python manage.py createsuperuser
 python manage.py makemigrations
 python manage.py migrate
+python manage.py createsuperuser
+
 
 ```
 
@@ -72,14 +76,20 @@ Copy to the logstash config and run:
 ```shell
 sudo cp pipi_detective/xray/src/config/logstash.dist.yml /etc/logstash/conf.d/logstash.conf
 sudo /usr/share/logstash/bin/logstash --path.settings /etc/logstash/ 
+sudo usermod -a -G logstash $USER
+sudo chmod g+rwx -R /var/lib/logstash
+sudo chmod g+rw -R /var/log/logstash
+
 ```
 
 
 ### Mode: Analyze top X packages ###
 
+Kick off celery workers if you want to use redis message queue
 ```shell
 celery -A pipi_detective.celery.app worker --loglevel=info -c 4
 ```
+
 
 ```shell
 python manage.py shell

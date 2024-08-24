@@ -11,17 +11,69 @@ from celery import shared_task
 from django.conf import settings
 
 
-# todo: functions:
-# learning - going over top packages
-# test - lead evil_package
-# discovery - run with new packages
-
 from collector.models import Pipipackage
+from xray.models import Snapshot
+
+
+import subprocess
+import logging
+import sys
+import psutil
+import os
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+def is_logstash_running(path_settings):
+    """Check if Logstash is already running with the specified path.settings."""
+    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        try:
+            if 'logstash' in proc.info['name']:
+                cmdline = proc.info['cmdline']
+                if '/usr/share/logstash/bin/logstash' in cmdline and '--path.settings' in cmdline:
+                    if path_settings in cmdline:
+                        logger.info(f"Logstash is already running with PID {proc.info['pid']}")
+                        return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+    return False
+
+def run_logstash_in_background(path_settings):
+    try:
+        # Construct the command to run Logstash
+        command = ['/usr/share/logstash/bin/logstash', '--path.settings', path_settings]
+        # Run the command in the background
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        logger.info(f"Logstash started with PID {process.pid}")
+        # Optionally, handle the output in a non-blocking way if needed
+        # Here, we're just starting the process and not reading the output
+        return process.pid
+    except Exception as e:
+        logger.exception(f"An error occurred while running Logstash: {e}")
+        return None
+
 
 
 ### MAIN ACTION
-def scan_top_packages(n=30, queue=True):
-    print("À")
+def scan_top_packages(n=30 , queue=True):
+    # Check if Logstash is already running
+    path_settings = "/etc/logstash/"
+    if is_logstash_running(path_settings):
+        logger.info("Logstash with the specified settings is already running.")
+    else:
+        # Run Logstash in the background
+        pid = run_logstash_in_background(path_settings)
+        if pid:
+            logger.info(f"Logstash started successfully with PID {pid}")
+        else:
+            logger.error("Failed to start Logstash.")
+
+
     list_of_top_packages = Pipipackage.objects.filter(logs_collected__isnull=True).order_by('-top_rating').values_list(
         'id', 'name')[:n]
     # list_of_top_packages_obj = Pipipackage.objects.all().order_by('-top_rating')[:100]
@@ -49,11 +101,6 @@ def scan_evil_package(queue=False, pckg_id=None):
 
 @shared_task
 def _run_vm_vagrant(package_name, packageobj_id=None):
-
-    # todo: verify that logstash is running
-
-
-
 
     import uuid
     vagrantfile_path = os.path.join(os.path.dirname(__file__), 'src')
@@ -89,6 +136,14 @@ def _run_vm_vagrant(package_name, packageobj_id=None):
     while time.time() - os.path.getmtime(file_path) < 5:
         print("Log file too fresh, waiting 1 sec")
         time.sleep(1)
+
+
+    if packageobj_id:
+        sn_obj, created = Snapshot.objects.create_or_update(filename=log_filename,
+                                                            #ruleset=dict(),
+                                                            #findings=dict(),
+                                                            pipipackage=packageobj_id)
+
 
     try:
         v.destroy(vm_name=os_env['HOSTNAME'])
