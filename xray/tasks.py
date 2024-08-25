@@ -24,59 +24,19 @@ import os
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def is_logstash_running(path_settings):
-    """Check if Logstash is already running with the specified path.settings."""
-    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-        try:
-            if 'logstash' in proc.info['name']:
-                cmdline = proc.info['cmdline']
-                if '/usr/share/logstash/bin/logstash' in cmdline and '--path.settings' in cmdline:
-                    if path_settings in cmdline:
-                        logger.info(f"Logstash is already running with PID {proc.info['pid']}")
-                        return True
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-    return False
-
-def run_logstash_in_background(path_settings):
-    try:
-        # Construct the command to run Logstash
-        command = ['/usr/share/logstash/bin/logstash', '--path.settings', path_settings]
-        # Run the command in the background
-        process = subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-        logger.info(f"Logstash started with PID {process.pid}")
-        # Optionally, handle the output in a non-blocking way if needed
-        # Here, we're just starting the process and not reading the output
-        return process.pid
-    except Exception as e:
-        logger.exception(f"An error occurred while running Logstash: {e}")
-        return None
-
 
 
 ### MAIN ACTION
 def scan_top_packages(n=30 , queue=True):
-    # Check if Logstash is already running
-    path_settings = "/etc/logstash/"
-    if is_logstash_running(path_settings):
-        logger.info("Logstash with the specified settings is already running.")
-    else:
-        # Run Logstash in the background
-        pid = run_logstash_in_background(path_settings)
-        if pid:
-            logger.info(f"Logstash started successfully with PID {pid}")
-        else:
-            logger.error("Failed to start Logstash.")
-
 
     list_of_top_packages = Pipipackage.objects.filter(logs_collected__isnull=True).order_by('-top_rating').values_list(
         'id', 'name')[:n]
     # list_of_top_packages_obj = Pipipackage.objects.all().order_by('-top_rating')[:100]
+    if not list_of_top_packages:
+        print("WARNING: list_of_top_packages empty - run:")
+        print("from collector.tasks import load_top_from_csv")
+        print("load_top_from_csv()")
+
     for pckg_tp in list_of_top_packages:
         if queue:
         # creating redis task
@@ -170,7 +130,8 @@ def _run_vm_vagrant(package_name, packageobj_id=None):
 
 
     try:
-        command = ['virsh', 'destroy', os_env['HOSTNAME']]
+        # virsh undefine guest1 --remove-all-storage
+        command = ['virsh', 'undefine', os_env['HOSTNAME'], '--remove-all-storage']
         # Run the command in the background
         process = subprocess.Popen(
             command,
