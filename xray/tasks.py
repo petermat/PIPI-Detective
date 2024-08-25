@@ -118,33 +118,48 @@ def _run_vm_vagrant(package_name, packageobj_id=None):
     #os_env['VAGRANT_LOG'] = 'debug' not working?
     v.env = os_env
     #v.up(vm_name='ubuntu') #vm_name=XX, provider=libvirt|virtualbox
-    v.up(vm_name=os_env['HOSTNAME'], provider=str(settings.VAGRANT_PROVIDER or "virtualbox"))
-    print(v.user_hostname_port(vm_name=os_env['HOSTNAME']))
 
-    env.hosts = [v.user_hostname_port(vm_name=os_env['HOSTNAME'])]
-    env.key_filename = v.keyfile(vm_name=os_env['HOSTNAME'])
-    env.disable_known_hosts = True  # useful for when the vagrant box ip changes.
-
-    # verify that logs are synced
-    log_filename = os_env['HOSTNAME']+datetime.now().strftime("-%Y-%m-%d")+".log"
-    file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'src', 'logs', log_filename)
-
-    while not os.path.exists(file_path):
-        print("Log file not found ", file_path, ". Waiting 1 sec")
-        time.sleep(1)
-
-    while time.time() - os.path.getmtime(file_path) < 5:
-        print("Log file too fresh, waiting 1 sec")
-        time.sleep(1)
-
-
-    if packageobj_id:
-
-        sn_obj, created = Snapshot.objects.update_or_create(
-                filename=log_filename,
-                #ruleset=dict(),
-                #findings=dict(),
+    try:
+        v.up(vm_name=os_env['HOSTNAME'], provider=str(settings.VAGRANT_PROVIDER or "virtualbox"))
+    except Exception as e:
+        print(f"ERROR: {os_env['HOSTNAME']}", e)
+        if packageobj_id:
+            sn_obj, created = Snapshot.objects.update_or_create(
+                filename=None,
+                failure=str(e),
                 pipipackage=Pipipackage.objects.get(id=packageobj_id))
+        time.sleep(10)
+    else:
+        print(v.user_hostname_port(vm_name=os_env['HOSTNAME']))
+
+        env.hosts = [v.user_hostname_port(vm_name=os_env['HOSTNAME'])]
+        env.key_filename = v.keyfile(vm_name=os_env['HOSTNAME'])
+        env.disable_known_hosts = True  # useful for when the vagrant box ip changes.
+
+        # verify that logs are synced
+        log_filename = os_env['HOSTNAME']+datetime.now().strftime("-%Y-%m-%d")+".log"
+        file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'src', 'logs', log_filename)
+
+        while not os.path.exists(file_path):
+            print("Log file not found ", file_path, ". Waiting 5 sec")
+            time.sleep(5)
+
+        while time.time() - os.path.getmtime(file_path) < 5:
+            print("Log file too fresh, waiting 5 sec")
+            time.sleep(5)
+
+
+        if packageobj_id:
+
+            sn_obj, created = Snapshot.objects.update_or_create(
+                    filename=log_filename,
+                    #ruleset=dict(),
+                    #findings=dict(),
+                    pipipackage=Pipipackage.objects.get(id=packageobj_id))
+
+            pckg_obj = Pipipackage.objects.get(id=packageobj_id)
+            pckg_obj.logs_collected = timezone.now()
+            pckg_obj.save()
 
 
     try:
@@ -153,13 +168,18 @@ def _run_vm_vagrant(package_name, packageobj_id=None):
     except Exception as e:
         print("DEBUG: Teardown of VM '{}' failed: {}".format(package_name, e))
 
-    finally:
-        if packageobj_id:
-            pckg_obj = Pipipackage.objects.get(id=packageobj_id)
-            pckg_obj.logs_collected = timezone.now()
-            pckg_obj.save()
 
-
+    try:
+        command = ['virsh', 'destroy', os_env['HOSTNAME']]
+        # Run the command in the background
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+    except Exception as e:
+        pass
 
 
 

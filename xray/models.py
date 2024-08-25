@@ -10,7 +10,8 @@ from collector.models import Pipipackage
 
 class Snapshot(models.Model):
     created = models.DateTimeField(default=timezone.now, blank=True)
-    filename = models.CharField(max_length=2048)
+    filename = models.CharField(max_length=2048,blank=True, null=True)
+    failure = models.TextField(blank=True, null=True)
     ruleset = models.JSONField(blank=True, null=True)
     findings = models.JSONField(blank=True, null=True)
     pipipackage = models.ForeignKey(Pipipackage, on_delete=models.CASCADE, related_name='snapshot')
