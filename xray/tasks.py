@@ -114,28 +114,29 @@ def _run_vm_vagrant(package_name, packageobj_id=None):
             if giveup == 0:
                 break
 
-        giveup=100
-        while time.time() - os.path.getmtime(file_path) < 5:
-            print(f"Log file too fresh, waiting 6 sec. Giveup: {giveup}")
-            time.sleep(5)
-            giveup -= 1
-            if giveup == 0:
-                break
+        if giveup:
+            while time.time() - os.path.getmtime(file_path) < 5:
+                print(f"Log file too fresh, waiting 6 sec. Giveup: {giveup}")
+                time.sleep(5)
+                giveup -= 1
+                if giveup == 0:
+                    break
+        if giveup:
+            if packageobj_id:
 
-        if packageobj_id:
+                sn_obj, created = Snapshot.objects.update_or_create(
+                        filename=log_filename,
+                        #ruleset=dict(),
+                        #findings=dict(),
+                        pipipackage=Pipipackage.objects.get(id=packageobj_id))
 
-            sn_obj, created = Snapshot.objects.update_or_create(
-                    filename=log_filename,
-                    #ruleset=dict(),
-                    #findings=dict(),
-                    pipipackage=Pipipackage.objects.get(id=packageobj_id))
+                pckg_obj = Pipipackage.objects.get(id=packageobj_id)
+                pckg_obj.logs_collected = timezone.now()
+                pckg_obj.save()
 
-            pckg_obj = Pipipackage.objects.get(id=packageobj_id)
-            pckg_obj.logs_collected = timezone.now()
-            pckg_obj.save()
-
-        logger.info(f"SUCCESS {os_env['HOSTNAME']} after {round(time.time() - start_time,1)}s")
-
+            logger.info(f"SUCCESS {os_env['HOSTNAME']} after {round(time.time() - start_time,1)}s")
+        else:
+            logger.error(f"ERROR {os_env['HOSTNAME']} LOGS NOT FOUND after {round(time.time() - start_time,1)}s")
     try:
         v.destroy(vm_name=os_env['HOSTNAME'])
         print("DEBUG: destroying vm {}".format(package_name))
