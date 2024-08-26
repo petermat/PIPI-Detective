@@ -1,0 +1,101 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# prepare golden image
+# 1. vagrant up —provider=libvirt .
+# 2. cd <vagrant_libvirt_dir> && sudo tools/create_box.sh /var/lib/libvirt/images/<needed_box_name>.img
+# 3. vagrant box add ./needed_box_name.box --name <name_of_new_box>
+#
+# more info: https://github.com/vagrant-libvirt/vagrant-libvirt/issues/1116
+
+ENV["LC_ALL"] = "en_US.UTF-8"
+
+VAGRANTFILE_API_VERSION = "2"
+
+
+HOSTNAME = "golden"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  # Ubuntu 22.04 box with osquery
+  config.vm.define HOSTNAME do |ubuntu|
+    ubuntu.vm.box = "generic/ubuntu2204"
+    ubuntu.vm.hostname = HOSTNAME
+
+    ubuntu.vm.synced_folder ".", "/vagrant", disabled: true
+
+    ubuntu.vm.provision "shell", inline: "export DEBIAN_FRONTEND=noninteractive"
+    ubuntu.vm.provision "shell", inline: 'echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null'
+    ubuntu.vm.provision "shell", inline: "sudo apt-get update && sudo apt-get install -y curl wget gnupg python3 python3-pip python3-venv "
+    ubuntu.vm.provision "shell", inline: "sudo apt-get update && sudo apt-get install -y xclip net-tools"
+
+    # OSQUERY
+    #ubuntu.vm.provision "shell", inline: "sudo dpkg -i /vagrant/osquery_5.12.1-1.linux_amd64.deb"
+    ubuntu.vm.provision "shell", inline: <<-SHELL
+        curl -fsSL  https://pkg.osquery.io/deb/pubkey.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/osquery.gpg
+        echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/osquery.gpg] https://pkg.osquery.io/deb deb main" | sudo tee /etc/apt/sources.list.d/osquery.list > /dev/null
+        sudo apt update
+        sudo apt install -y osquery
+    SHELL
+    ubuntu.vm.provision "file", source: "osquery.conf", destination: "/home/vagrant/osquery.conf"
+    ubuntu.vm.provision "file", source: "osquery.flags", destination: "/home/vagrant/osquery.flags"
+    ubuntu.vm.provision "file", source: "python_syscalls_pack.json", destination: "/home/vagrant/python_syscalls_pack.json"
+
+    ubuntu.vm.provision "shell", inline: <<-SHELL
+      #sudo chown -R :adm /var/log/osquery && sudo chmod -R g+r /var/log/osquery && sudo chmod g+s /var/log/osquery
+      mv /home/vagrant/osquery.conf /etc/osquery/osquery.conf
+      mv /home/vagrant/osquery.flags /etc/osquery/osquery.flags
+      mv /home/vagrant/python_syscalls_pack.json /opt/osquery/share/osquery/packs/python_syscalls_pack.json
+      systemctl enable osqueryd
+      systemctl start osqueryd
+    SHELL
+
+    # FILEBEAT
+    ubuntu.vm.provision "shell", privileged: true, inline: <<-SHELL
+      #dpkg -i /vagrant/filebeat-8.15.0-amd64.deb
+      wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg
+      echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
+      apt-get update && apt-get install filebeat
+    SHELL
+    ubuntu.vm.provision "file", source: "filebeat.service", destination: "/home/vagrant/filebeat.service"
+    ubuntu.vm.provision "file", source: "filebeat.yml", destination: "/home/vagrant/filebeat.yml"
+    ubuntu.vm.provision "shell", privileged: true, inline: <<-SHELL
+      mv /home/vagrant/filebeat.service /lib/systemd/system/filebeat.service
+      mv /home/vagrant/filebeat.yml /etc/filebeat/filebeat.yml
+      chown root:root /etc/filebeat/filebeat.yml
+      chmod go-w /etc/filebeat/filebeat.yml
+      sed -i "s/localhost:5044/$(netstat -rn | awk '/^0.0.0.0/ {print $2; exit}'):5044/" /etc/filebeat/filebeat.yml
+      systemctl daemon-reload
+      systemctl start filebeat
+      systemctl enable filebeat
+    SHELL
+
+    ubuntu.vm.provider 'virtualbox' do |vbox|
+        vbox.name = HOSTNAME
+        vbox.memory = 2048
+        vbox.cpus = 2
+        vbox.gui = true
+        vbox.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+        vbox.customize ['modifyvm', :id, '--accelerate3d', 'off']
+        vbox.customize ['modifyvm', :id, '--graphicscontroller', 'vmsvga']
+        # vbox.customize ['modifyvm', :id, '--graphicscontroller', 'vboxvga']
+        vbox.customize ['modifyvm', :id, '--hwvirtex', 'on']
+        vbox.customize ['modifyvm', :id, '--ioapic', 'on']
+        vbox.customize ['modifyvm', :id, '--vram', '128']
+        vbox.customize ['modifyvm', :id, '--audio', 'none']
+    end
+
+   ubuntu.vm.provider :libvirt do |libvirt|
+        libvirt.driver = "qemu"
+        libvirt.memory = 1024
+        libvirt.cpus = 1
+        #libvirt.management_network_address = '10.151.0.250/24'
+        #libvirt.graphics_port = 5901
+        #libvirt.graphics_ip = '0.0.0.0'
+        libvirt.video_type = 'qxl'
+    end
+
+  end
+
+
+
+end

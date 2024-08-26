@@ -4,7 +4,6 @@
 
 ENV["LC_ALL"] = "en_US.UTF-8"
 
-VAGRANTFILE_API_VERSION = "2"
 
 if ENV['HOSTNAME'] then
     HOSTNAME = ENV['HOSTNAME']
@@ -12,7 +11,7 @@ else
     HOSTNAME = "ubuntu"
 end
 
-Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+Vagrant.configure(2) do |config|
 
   # Ubuntu 22.04 box with osquery
   config.vm.define ENV['HOSTNAME'] do |ubuntu|
@@ -20,38 +19,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     ubuntu.vm.hostname = HOSTNAME
     #ubuntu.vm.network :private_network, :auto_network => true
     #ubuntu.vm.network "private_network", type: "dhcp"
-    ubuntu.vm.synced_folder "./config/labrat", "/vagrant"
-
-    ubuntu.vm.provision "shell", inline: "export DEBIAN_FRONTEND=noninteractive"
-    ubuntu.vm.provision "shell", inline: 'echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null'
-    ubuntu.vm.provision "shell", inline: "sudo apt-get update && sudo apt-get install -y curl wget gnupg python3 python3-pip python3-venv "
-    ubuntu.vm.provision "shell", inline: "sudo apt-get update && sudo apt-get install -y xclip net-tools"
-    #ubuntu.vm.provision "shell", inline: "sudo apt-get install -y avahi-daemon libnss-mdns"
-    ubuntu.vm.provision "shell", inline: 'echo "OSQuery config starts"'
-    ubuntu.vm.provision "shell", inline: "sudo dpkg -i /vagrant/osquery_5.12.1-1.linux_amd64.deb"
-
-
-    ubuntu.vm.provision "shell", inline: "cp /vagrant/osquery.conf /etc/osquery/osquery.conf"
-    ubuntu.vm.provision "shell", inline: "cp /vagrant/osquery.flags /etc/osquery/osquery.flags"
-    ubuntu.vm.provision "shell", inline: "cp /vagrant/python_syscalls_pack.json /opt/osquery/share/osquery/packs/python_syscalls_pack.json"
-    #ubuntu.vm.provision "shell", inline: "cp /vagrant/rsyslog_osquery.conf /etc/rsyslog.d/rsyslog_osquery.conf"
-
-    ubuntu.vm.provision "shell", inline: <<-SHELL
-      #sudo chown -R :adm /var/log/osquery && sudo chmod -R g+r /var/log/osquery && sudo chmod g+s /var/log/osquery
-      sudo systemctl start osqueryd
-      #sudo systemctl restart rsyslog
-    SHELL
-
-    ubuntu.vm.provision "shell", privileged: true, inline: <<-SHELL
-      dpkg -i /vagrant/filebeat-8.15.0-amd64.deb
-      mv /vagrant/filebeat.service /lib/systemd/system/filebeat.service
-      mv /vagrant/filebeat.yml /etc/filebeat/filebeat.yml
-      chown root:root /etc/filebeat/filebeat.yml
-      chmod go-w /etc/filebeat/filebeat.yml
-      sed -i "s/localhost:5044/$(netstat -rn | awk '/^0.0.0.0/ {print $2; exit}'):5044/" /etc/filebeat/filebeat.yml
-      systemctl daemon-reload
-      service filebeat start
-    SHELL
 
     ubuntu.vm.provision "shell", inline: 'echo "About to install pipi package"'
     ubuntu.vm.provision "shell", privileged: false do |s|
@@ -75,7 +42,6 @@ except:
     end
 
     ubuntu.vm.provider 'virtualbox' do |vbox|
-        #ubuntu.vm.synced_folder "logs/"+HOSTNAME, "/var/log/osquery", create: true
         vbox.name = HOSTNAME
         vbox.memory = 2048
         vbox.cpus = 2
@@ -91,8 +57,6 @@ except:
     end
 
    ubuntu.vm.provider :libvirt do |libvirt|
-        #ubuntu.vm.synced_folder "logs/"+HOSTNAME, "/var/log/osquery", type: "nfs"
-        #ubuntu.vm.synced_folder "logs/"+HOSTNAME, "/var/log/osquery", create: true, type: 'rsync', rsync__args: ["--verbose", "--archive", "--update"]
         libvirt.memory = 1024
         libvirt.cpus = 1
         #libvirt.graphics_port = 5901
@@ -100,67 +64,6 @@ except:
         libvirt.video_type = 'qxl'
   end
 
-  end
-
-  # Configuration for rsyslog server
-  #config.vm.define "rsyslog" do |rsyslog|
-  #  rsyslog.vm.box = "ubuntu/jammy64"  # "generic/ubuntu2204"
-  #  rsyslog.vm.hostname = "rsyslog"
-  #  #rsyslog.vm.network :private_network, :auto_network => true
-  #  #rsyslog.vm.network "private_network", type: "dhcp"
-  #  rsyslog.vm.synced_folder "./config/rsyslog", "/vagrant"
-  #  rsyslog.vm.synced_folder "./logs", "/var/log/host_logs", create: true
-  #  rsyslog.vm.provision "shell", inline: "export DEBIAN_FRONTEND=noninteractive"
-  #  rsyslog.vm.provision "shell", inline: "sudo apt-get update && sudo apt-get install -y rsyslog"
-  #  rsyslog.vm.provision "shell", inline: "sudo apt-get install -y avahi-daemon libnss-mdns"
-  #  rsyslog.vm.provision "shell", inline: "sudo cp /vagrant/rsyslog.conf /etc/rsyslog.conf"
-  #  rsyslog.vm.provision "shell", inline: "sudo systemctl restart rsyslog"
-  #  rsyslog.vm.provider 'virtualbox' do |vbox|
-  #      vbox.name = "rsyslog"
-  #      vbox.memory = 2048
-  #      vbox.cpus = 2
-  #      vbox.gui = true
-  #      vbox.customize ['modifyvm', :id, '--accelerate3d', 'off']
-  #      vbox.customize ['modifyvm', :id, '--graphicscontroller', 'vmsvga']
-  #      # vbox.customize ['modifyvm', :id, '--graphicscontroller', 'vboxvga']
-  #      vbox.customize ['modifyvm', :id, '--hwvirtex', 'on']
-  #      vbox.customize ['modifyvm', :id, '--ioapic', 'on']
-  #      vbox.customize ['modifyvm', :id, '--vram', '128']
-  #      vbox.customize ['modifyvm', :id, '--audio', 'none']
-  #  end
-  #end
-
-  # Splunk box
-  config.vm.define "splunk" do |splunk|
-      splunk.vm.box = "bento/ubuntu-22.04"
-      splunk.vm.hostname = "splunk"
-      splunk.vm.synced_folder "./config/splunk", "/vagrant"
-      # Assign a private network IP (Change as needed)
-      #config.vm.network "private_network", ip: "192.168.33.10"
-      splunk.vm.network "forwarded_port", guest: 8000, host: 8000
-      # Synced folder for logs
-      # Provision with a shell script
-      splunk.vm.provision "shell", privileged: true, path: "./config/splunk/provision-splunk.sh"
-      splunk.vm.provider 'virtualbox' do |vbox|
-        splunk.vm.synced_folder "./logs", "/opt/splunk-logs", create: true
-        vbox.name = "splunk"
-        vbox.memory = 2048
-        vbox.cpus = 2
-        vbox.gui = true
-        vbox.customize ['modifyvm', :id, '--accelerate3d', 'off']
-        vbox.customize ['modifyvm', :id, '--graphicscontroller', 'vmsvga']
-        # vbox.customize ['modifyvm', :id, '--graphicscontroller', 'vboxvga']
-        vbox.customize ['modifyvm', :id, '--hwvirtex', 'on']
-        vbox.customize ['modifyvm', :id, '--ioapic', 'on']
-        vbox.customize ['modifyvm', :id, '--vram', '128']
-        vbox.customize ['modifyvm', :id, '--audio', 'none']
-      end
-
-      splunk.vm.provider :libvirt do |libvirt|
-        splunk.vm.synced_folder "./logs", "/opt/splunk-logs", create: true, type: 'rsync', rsync__args: ["--verbose", "--archive", "--update"]
-        libvirt.graphics_port = 5901
-        libvirt.graphics_ip = '0.0.0.0'
-        libvirt.video_type = 'qxl'
   end
 
   end
