@@ -17,8 +17,9 @@ HOSTNAME = "golden"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Ubuntu 22.04 box with osquery
+  config.ssh.insert_key = false
   config.vm.define HOSTNAME do |ubuntu|
-    ubuntu.vm.box = "generic/ubuntu2204"
+    ubuntu.vm.box = "labrat_golden"
     ubuntu.vm.hostname = HOSTNAME
 
     ubuntu.vm.synced_folder ".", "/vagrant", disabled: true
@@ -94,8 +95,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         libvirt.video_type = 'qxl'
     end
 
-  end
-
-
-
 end
+
+
+
