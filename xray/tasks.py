@@ -20,9 +20,11 @@ import logging
 import sys
 import psutil
 import os
+
+
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+from celery.utils.log import get_task_logger
+logger = get_task_logger(__name__)
 
 
 
@@ -43,7 +45,7 @@ def scan_top_packages(n=30 , queue=True):
             _run_vm_vagrant.delay(package_name=pckg_tp[1], packageobj_id=pckg_tp[0])
         else:
             _run_vm_vagrant(package_name=pckg_tp[1], packageobj_id=pckg_tp[0])
-        print("Running: ", pckg_tp[1])
+        print(f"Running: {pckg_tp[1]}")
 
 ### MAIN BULK ACTION
 def scan_new_packages(self):
@@ -61,17 +63,18 @@ def scan_evil_package(queue=False, pckg_id=None):
 
 @shared_task
 def _run_vm_vagrant(package_name, packageobj_id=None):
-
+    start_time = time.time()
     import uuid
     vagrantfile_path = os.path.join(os.path.dirname(__file__), 'src')
-    log_cm = vagrant.make_file_cm('deployment.log')
+    log_cm = vagrant.make_file_cm('errors.log')
 
-    v = vagrant.Vagrant(root=vagrantfile_path, quiet_stdout=False) #out_cm=log_cm, err_cm=log_cm)
-    print("DEBUG about to spin: ",package_name)
+    v = vagrant.Vagrant(root=vagrantfile_path, quiet_stdout=False, err_cm=log_cm) #out_cm=log_cm, err_cm=log_cm)
+    print(f"DEBUG about to spin:  {package_name}")
     os_env = os.environ.copy()
     os_env['HOSTNAME'] = re.sub(r"[^a-zA-Z-\.\d]+", '', package_name.split("@")[0])
     os_env['HOSTNAME'] += f"-{uuid.uuid4().hex.upper()[0:4]}"
     os_env['PACKAGE_NAME_INSTALL'] = package_name
+    logger.info(f"INFO {os_env['HOSTNAME']} starting")
 
     # evil_package = evil-package@git+https://github.com/petermat/evil-package
     os_env['PACKAGE_NAME_IMPORT'] = re.sub(r'^python[-_]', '', package_name).split("@")[0].replace("-","_")
@@ -80,15 +83,18 @@ def _run_vm_vagrant(package_name, packageobj_id=None):
     #v.up(vm_name='ubuntu') #vm_name=XX, provider=libvirt|virtualbox
 
     try:
-        v.up(vm_name=os_env['HOSTNAME'], provider=str(settings.VAGRANT_PROVIDER or "virtualbox"))
+        v.up(vm_name=os_env['HOSTNAME'],
+             provider=str(settings.VAGRANT_PROVIDER or "virtualbox"))
     except Exception as e:
         print(f"ERROR: {os_env['HOSTNAME']}", e)
-        if packageobj_id:
-            sn_obj, created = Snapshot.objects.update_or_create(
-                filename=None,
-                failure=str(e),
-                pipipackage=Pipipackage.objects.get(id=packageobj_id))
+        #if packageobj_id:
+        #    sn_obj, created = Snapshot.objects.update_or_create(
+        #        filename=None,
+        #        failure=str(e),
+        #        pipipackage=Pipipackage.objects.get(id=packageobj_id))
+        logger.error(f"FAIL {os_env['HOSTNAME']} after {round(time.time() - start_time,1)}s")
         time.sleep(10)
+
     else:
         print(v.user_hostname_port(vm_name=os_env['HOSTNAME']))
 
@@ -100,14 +106,21 @@ def _run_vm_vagrant(package_name, packageobj_id=None):
         log_filename = os_env['HOSTNAME']+datetime.now().strftime("-%Y-%m-%d")+".log"
         file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'src', 'logs', log_filename)
 
+        giveup=100
         while not os.path.exists(file_path):
-            print("Log file not found ", file_path, ". Waiting 5 sec")
-            time.sleep(5)
+            print(f"Log file not found, {file_path}. Waiting 6 sec. Giveup: {giveup}")
+            time.sleep(6)
+            giveup -= 1
+            if giveup == 0:
+                break
 
+        giveup=100
         while time.time() - os.path.getmtime(file_path) < 5:
-            print("Log file too fresh, waiting 5 sec")
+            print(f"Log file too fresh, waiting 6 sec. Giveup: {giveup}")
             time.sleep(5)
-
+            giveup -= 1
+            if giveup == 0:
+                break
 
         if packageobj_id:
 
@@ -121,12 +134,14 @@ def _run_vm_vagrant(package_name, packageobj_id=None):
             pckg_obj.logs_collected = timezone.now()
             pckg_obj.save()
 
+        logger.info(f"SUCCESS {os_env['HOSTNAME']} after {round(time.time() - start_time,1)}s")
 
     try:
         v.destroy(vm_name=os_env['HOSTNAME'])
         print("DEBUG: destroying vm {}".format(package_name))
     except Exception as e:
         print("DEBUG: Teardown of VM '{}' failed: {}".format(package_name, e))
+        logger.warning(f"Warning {os_env['HOSTNAME']}  teardown failed after {round(time.time() - start_time,1)}s")
 
 
     try:
