@@ -15,7 +15,7 @@ Vagrant.configure(2) do |config|
 
   # Ubuntu 22.04 box with osquery
   config.vm.define ENV['HOSTNAME'] do |ubuntu|
-    ubuntu.vm.box = "generic/ubuntu2204"
+    ubuntu.vm.box = "labrat_golden"
     ubuntu.vm.hostname = HOSTNAME
     ubuntu.vm.synced_folder ".", "/vagrant", disabled: true
 
