@@ -57,10 +57,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       echo "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main" | sudo tee /etc/apt/sources.list.d/elastic-8.x.list
       apt-get update && apt-get install filebeat
     SHELL
-    ubuntu.vm.provision "file", source: "filebeat.service", destination: "/home/vagrant/filebeat.service"
+    #ubuntu.vm.provision "file", source: "filebeat.service", destination: "/home/vagrant/filebeat.service"
     ubuntu.vm.provision "file", source: "filebeat.yml", destination: "/home/vagrant/filebeat.yml"
     ubuntu.vm.provision "shell", privileged: true, inline: <<-SHELL
-      mv /home/vagrant/filebeat.service /lib/systemd/system/filebeat.service
+      #mv /home/vagrant/filebeat.service /lib/systemd/system/filebeat.service
       mv /home/vagrant/filebeat.yml /etc/filebeat/filebeat.yml
       chown root:root /etc/filebeat/filebeat.yml
       chmod go-w /etc/filebeat/filebeat.yml

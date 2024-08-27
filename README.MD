@@ -36,11 +36,23 @@ sudo usermod -a -G libvirt ${USER}
 sudo usermod -aG kvm $USER 
 ```
 
+Change range of vagrant-libvirt network to accommodate lange number of hosts
+```shell
+virsh net-destroy vagrant-libvirt
+virsh net-undefine vagrant-libvirt
+virsh net-create pipi_detective/xray/src/config/vagrant-libvirt.xml
+virsh net-autostart vagrant-libvirt
+```
+
+
 **Get repo**
 
+Clone repo and edit settings.
 ```shell
 git clone https://github.com/petermat/PIPI-Detective.git
 cd PIPI-Detective
+cp pipi_detective/config/dev.dist.py pipi_detective/config/dev.py
+nano pipi_detective/config/dev.py  
 ```
 
 **Install Python packages**
@@ -51,17 +63,18 @@ pip install -r requirements.txt
 ```
 
 **Configure Django App**
+
+Configure GSuite credentials collector/oauth.json
 ```shell
-- configure GSuite credentials collector/oauth.json
+cp collector/oauth.dist.json collector/oauth.json
+nano collector/oauth.json
 ```
 
 **Set the Django app**
 ```shell
-python manage.py makemigrations
+python manage.py makemigrations xray colector
 python manage.py migrate
 python manage.py createsuperuser
-
-
 ```
 
 ## Running ##
@@ -70,11 +83,12 @@ python manage.py createsuperuser
 
 Edit log path to absolute value in following file:
 ```shell
-pipi_detective/xray/src/config/logstash.dist.yml
+cp pipi_detective/xray/src/config/logstash.dist.yml pipi_detective/xray/src/config/logstash.yml
+nsno pipi_detective/xray/src/config/logstash.yml
 ```
 Copy to the logstash config and run:
 ```shell
-sudo cp pipi_detective/xray/src/config/logstash.dist.yml /etc/logstash/conf.d/logstash.conf
+sudo cp pipi_detective/xray/src/config/logstash.yml /etc/logstash/conf.d/logstash.conf
 sudo usermod -a -G logstash $USER
 sudo chmod g+rwx -R /var/lib/logstash
 sudo chmod g+rw -R /var/log/logstash
@@ -88,9 +102,8 @@ test:
 
 Kick off celery workers if you want to use redis message queue
 ```shell
-celery -A pipi_detective.celery.app worker --loglevel=info -c 4
+celery -A pipi_detective.celery.app worker --loglevel=info -c 10
 ```
-
 
 ```shell
 python manage.py shell

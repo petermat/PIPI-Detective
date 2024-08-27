@@ -1,18 +1,13 @@
 input {
   beats {
     port => 5044
-  }
-}
-
-filter {
-  mutate {
-    add_field => { "hostname" => "%{[fields][hostname]}" }
+    codec => "json"
   }
 }
 
 output {
   file {
-    path => "<ABS PATH>/%{[hostname]}-%{+yyyy-MM-dd}.log"
+    path => "<ABS PATH>/%{[hostIdentifier]}-%{+yyyy-MM-dd}.log"
     codec => "line"
   }
 }

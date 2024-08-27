@@ -24,8 +24,9 @@ Vagrant.configure(2) do |config|
     #ubuntu.vm.network :private_network, :auto_network => true
     #ubuntu.vm.network "private_network", type: "dhcp"
 
-    ubuntu.vm.provision "shell", inline: 'echo "Restart filebeat to refresh hostname"'
-    ubuntu.vm.provision "shell", inline: 'systemctl restart filebeat'
+    # not needed anymore because osquery is change aware
+    #ubuntu.vm.provision "shell", inline: 'echo "Restart filebeat to refresh hostname"'
+    #ubuntu.vm.provision "shell", inline: 'systemctl restart filebeat'
     ubuntu.vm.provision "shell", inline: 'echo "About to install pipi package"'
     ubuntu.vm.provision "shell", privileged: false do |s|
         s.inline = "pip install $1;sleep 20;"
