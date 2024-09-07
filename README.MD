@@ -55,6 +55,20 @@ cp pipi_detective/config/dev.dist.py pipi_detective/config/dev.py
 nano pipi_detective/config/dev.py  
 ```
 
+** Create Golden Image
+```shell
+cd xray/src/config/labrat
+vagrant up golden --provider libvirt
+vagrant halt golden
+virsh edit labrat_golden <- copy link to disk image
+cd ../../../../..
+sudo apt-get update && sudo apt-get install -y git qemu-utils git
+git clone https://github.com/vagrant-libvirt/vagrant-libvirt
+cd vagrant-libvirt/tools
+sudo ./create_box.sh /var/lib/libvirt/images/labrat_golden.img
+vagrant box add labrat_golden.box --name labrat_golden --force
+```
+
 **Install Python packages**
 ```shell
 python3 -m venv venv

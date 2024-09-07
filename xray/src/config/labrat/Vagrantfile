@@ -19,7 +19,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Ubuntu 22.04 box with osquery
   config.ssh.insert_key = false
   config.vm.define HOSTNAME do |ubuntu|
-    ubuntu.vm.box = "labrat_golden"
+    ubuntu.vm.box = "generic/ubuntu2204"
     ubuntu.vm.hostname = HOSTNAME
 
     ubuntu.vm.synced_folder ".", "/vagrant", disabled: true
@@ -27,7 +27,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     ubuntu.vm.provision "shell", inline: "export DEBIAN_FRONTEND=noninteractive"
     ubuntu.vm.provision "shell", inline: 'echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null'
     ubuntu.vm.provision "shell", inline: "sudo apt-get update && sudo apt-get install -y curl wget gnupg python3 python3-pip python3-venv "
-    ubuntu.vm.provision "shell", inline: "sudo apt-get update && sudo apt-get install -y xclip net-tools pkg-config cmake-data"
+    ubuntu.vm.provision "shell", inline: "sudo apt-get update && sudo apt-get install -y linux-libc-dev xclip net-tools pkg-config cmake-data"
 
     # OSQUERY
     #ubuntu.vm.provision "shell", inline: "sudo dpkg -i /vagrant/osquery_5.12.1-1.linux_amd64.deb"

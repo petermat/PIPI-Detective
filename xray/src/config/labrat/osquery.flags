@@ -1,8 +1,23 @@
 --enable_bpf_events=true
+--enable_file_events
 --disable_events=false
 --disable_audit=false
 --audit_allow_config=true
 --audit_allow_socket=true
 --audit_allow_process_events=true
 --enable_syslog
+--audit_allow_sockets
+--audit_allow_unix
+--audit_allow_user_events
+--audit_allow_socket_events
+--audit_allow_failed_socket_events
+--audit_allow_accept_socket_events
+--audit_allow_null_accept_socket_events
 
+
+--events_expiry=1
+--events_max=500000
+--logger_min_status=1
+--logger_plugin=filesystem
+--watchdog_memory_limit=550
+--watchdog_utilization_limit=260
