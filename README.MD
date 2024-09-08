@@ -133,3 +133,8 @@ scan_top_packages(n=100, queue=True)
 
 
 
+# External Sources
+
+* [evil-package](https://github.com/petermat/evil_package/)
+* [osquery ebpf config](https://github.com/hackertarget/osquery-ebpf-config/tree/main)
+* [evil packages by datadog](https://github.com/DataDog/malicious-software-packages-dataset)
