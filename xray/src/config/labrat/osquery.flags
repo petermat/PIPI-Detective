@@ -13,11 +13,11 @@
 --audit_allow_failed_socket_events
 --audit_allow_accept_socket_events
 --audit_allow_null_accept_socket_events
-
-
 --events_expiry=1
 --events_max=500000
 --logger_min_status=1
 --logger_plugin=filesystem
 --watchdog_memory_limit=550
 --watchdog_utilization_limit=260
+
+
