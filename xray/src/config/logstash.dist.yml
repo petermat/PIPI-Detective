@@ -1,6 +1,7 @@
 input {
   beats {
     port => 5044
+    type => "osquery_json"
     codec => "json"
   }
 }
@@ -8,6 +9,6 @@ input {
 output {
   file {
     path => "<ABS PATH>/%{[hostIdentifier]}-%{+yyyy-MM-dd}.log"
-    codec => "line"
+    codec => "json"
   }
 }
