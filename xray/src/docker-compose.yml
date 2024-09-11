@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  splunk:
+    image: splunk/splunk:latest
+    container_name: splunk
+    environment:
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_PASSWORD=password
+    volumes:
+      - ./logs:/opt/splunk-logs:ro
+      - ./config/splunk/config_files:/opt/splunk/etc/system/local
+    ports:
+      - "8000:8000"

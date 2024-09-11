@@ -1,6 +1,6 @@
 #!/bin/bash
 # Variables
-SPLUNK_PASSWORD='admin123'  # Change this!
+SPLUNK_PASSWORD='password'  # Change this!
 SPLUNK_USER='admin'
 SPLUNK_DEB_URL='https://download.splunk.com/products/splunk/releases/9.2.1/linux/splunk-9.2.1-78803f08aabb-linux-2.6-amd64.deb'
 # Download and Install Splunk
